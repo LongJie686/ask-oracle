@@ -4,7 +4,7 @@
 :root {
   --fs: 19px;          /* 正文字号 */
   --lh: 1.95;          /* 行距 */
-  --measure: 34em;     /* 页宽，用 em 让它随字号一起缩放 */
+  --measure: 44em;     /* 页宽，用 em 让它随字号一起缩放 */
   --font-body: "Songti SC", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
   --bar: 52px;
 }
@@ -248,6 +248,15 @@ button.icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; s
 #pagerInfo { font-size: 12px; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ---------- 移动端 ---------- */
+/* ---------- 宽屏：目录改成停靠，不再浮在正文上 ---------- */
+@media (min-width: 1200px) {
+  body.toc-open #toc { transform: none; }
+  body.toc-open #main { margin-left: 300px; }
+  body.toc-open #topbar { left: 300px; }
+  body.toc-open #progress { left: 300px; }
+  #toc, #main, #topbar, #progress { transition: margin-left .26s ease, left .26s ease, transform .26s cubic-bezier(.22,.61,.36,1); }
+}
+
 @media (max-width: 620px) {
   :root { --fs: 18px; --bar: 48px; }
   #article { padding: 28px 18px 8px; }

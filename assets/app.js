@@ -22,8 +22,10 @@
 
   // ---------- 偏好 ----------
   var KEY = 'askoracle.reader.v1';
+  var PREF_VER = 2;               // 默认值调整过就加一，让老访客跟着更新一次
   var DEFAULTS = {
-    theme: 'night', font: 'song', fs: 19, lh: 1.95, w: 34,
+    v: PREF_VER,
+    theme: 'night', font: 'song', fs: 19, lh: 1.95, w: 44,
     idx: 0, scroll: 0, seen: [],
     reverse: false, collapsed: []
   };
@@ -36,6 +38,8 @@
     for (var k in DEFAULTS) out[k] = (p && p[k] !== undefined) ? p[k] : DEFAULTS[k];
     if (!Array.isArray(out.seen)) out.seen = [];
     if (!Array.isArray(out.collapsed)) out.collapsed = [];
+    // 老访客存过旧的窄页宽，光改默认值对他们不生效，这里跟着走一次
+    if (out.v !== PREF_VER) { out.w = DEFAULTS.w; out.v = PREF_VER; }
     return out;
   }
   var saveTimer = null;
@@ -47,7 +51,7 @@
     }, 250);
   }
 
-  var LIMITS = { fs: [14, 26, 1], lh: [1.5, 2.4, .05], w: [26, 46, 2] };
+  var LIMITS = { fs: [14, 26, 1], lh: [1.5, 2.4, .05], w: [26, 72, 2] };
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
 
   function applyPrefs() {
@@ -133,7 +137,8 @@
         li.title = it.title;
         if (i === prefs.idx) li.className = 'active';
         else if (prefs.seen.indexOf(it.id) !== -1) li.className = 'read';
-        li.addEventListener('click', function () { open(i, true); closeToc(); });
+        // 宽屏目录是停靠的，选完章留着；窄屏是浮层，选完收起让路
+        li.addEventListener('click', function () { open(i, true); if (!wide()) closeToc(); });
         ul.appendChild(li);
       });
       grp.appendChild(ul);
@@ -204,8 +209,21 @@
   }
 
   // ---------- 抽屉与面板 ----------
-  function openToc() { el.toc.classList.add('open'); el.toc.setAttribute('aria-hidden', 'false'); el.scrim.hidden = false; }
-  function closeToc() { el.toc.classList.remove('open'); el.toc.setAttribute('aria-hidden', 'true'); maybeHideScrim(); }
+  // 宽屏上目录是停靠的（把正文推开），不该再压一层遮罩
+  function wide() { return window.innerWidth >= 1200; }
+
+  function openToc() {
+    el.toc.classList.add('open');
+    document.body.classList.add('toc-open');
+    el.toc.setAttribute('aria-hidden', 'false');
+    if (!wide()) el.scrim.hidden = false;
+  }
+  function closeToc() {
+    el.toc.classList.remove('open');
+    document.body.classList.remove('toc-open');
+    el.toc.setAttribute('aria-hidden', 'true');
+    maybeHideScrim();
+  }
   function openSet() { el.settings.classList.add('open'); el.settings.setAttribute('aria-hidden', 'false'); el.scrim.hidden = false; }
   function closeSet() { el.settings.classList.remove('open'); el.settings.setAttribute('aria-hidden', 'true'); maybeHideScrim(); }
   function maybeHideScrim() {
