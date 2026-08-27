@@ -1,0 +1,215 @@
+/* 阅读站样式。三套主题靠 data-theme 切换，正文排版全部走 CSS 变量，
+   设置面板改的就是这几个变量。 */
+
+:root {
+  --fs: 19px;          /* 正文字号 */
+  --lh: 1.95;          /* 行距 */
+  --measure: 34em;     /* 页宽，用 em 让它随字号一起缩放 */
+  --font-body: "Songti SC", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
+  --bar: 52px;
+}
+
+html[data-font="hei"] {
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+
+/* 夜：不用纯黑，纯黑配浅字在暗处发晕 */
+html[data-theme="night"] {
+  --bg: #16171a;
+  --bg-soft: #1c1e22;
+  --fg: #c9c6c0;
+  --fg-strong: #e6e3dd;
+  --fg-dim: #7b7d83;
+  --line: #2a2c31;
+  --accent: #7fa3bd;
+}
+html[data-theme="paper"] {
+  --bg: #f3ece1;
+  --bg-soft: #eae1d2;
+  --fg: #40392f;
+  --fg-strong: #241f18;
+  --fg-dim: #8a8073;
+  --line: #ddd2be;
+  --accent: #8a6a3f;
+}
+html[data-theme="day"] {
+  --bg: #ffffff;
+  --bg-soft: #f5f5f7;
+  --fg: #2f3033;
+  --fg-strong: #111214;
+  --fg-dim: #86878c;
+  --line: #e4e5e8;
+  --accent: #3f6d99;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background .25s ease, color .25s ease;
+  overflow-y: scroll;              /* 常驻滚动条，切章不跳动 */
+  overscroll-behavior-y: none;
+}
+
+/* ---------- 顶部进度条 ---------- */
+#progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 60;
+  background: transparent; pointer-events: none;
+}
+#progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .1s linear; }
+
+/* ---------- 顶栏：向下滚动时让位 ---------- */
+#topbar {
+  position: fixed; inset: 0 0 auto 0; height: var(--bar); z-index: 50;
+  display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid transparent;
+  transition: transform .28s ease, border-color .2s ease;
+}
+#topbar.lifted { border-bottom-color: var(--line); }
+#topbar.hidden { transform: translateY(-100%); }
+
+#heading {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;
+  line-height: 1.25; padding: 0 2px;
+}
+#bookTitle { font-size: 11px; color: var(--fg-dim); letter-spacing: .06em; }
+#chapTitle {
+  font-size: 13px; color: var(--fg-strong);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+button.icon {
+  flex: none; width: 36px; height: 36px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--fg-dim); cursor: pointer;
+  display: grid; place-items: center;
+}
+button.icon:hover { background: var(--bg-soft); color: var(--fg-strong); }
+button.icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+
+/* ---------- 目录抽屉 ---------- */
+#toc {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 300px; max-width: 84vw; z-index: 70;
+  background: var(--bg-soft); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  transform: translateX(-102%); transition: transform .26s cubic-bezier(.22,.61,.36,1);
+}
+#toc.open { transform: none; }
+.toc-head { padding: 10px; border-bottom: 1px solid var(--line); }
+#tocSearch {
+  width: 100%; height: 34px; padding: 0 10px; font: inherit; font-size: 13px;
+  color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; outline: none;
+}
+#tocSearch:focus { border-color: var(--accent); }
+#tocStats { padding: 8px 12px; font-size: 11px; color: var(--fg-dim); border-bottom: 1px solid var(--line); }
+#tocList { list-style: none; overflow-y: auto; flex: 1; padding: 4px 0 24px; }
+#tocList li {
+  padding: 9px 14px; font-size: 13.5px; color: var(--fg-dim); cursor: pointer;
+  border-left: 2px solid transparent; display: flex; gap: 8px; align-items: baseline;
+}
+#tocList li:hover { background: var(--bg); color: var(--fg); }
+#tocList li.active { color: var(--fg-strong); border-left-color: var(--accent); background: var(--bg); }
+#tocList li.read { color: color-mix(in srgb, var(--fg-dim) 70%, transparent); }
+#tocList .num { flex: none; font-size: 11px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+#tocList .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- 设置面板 ---------- */
+#settings {
+  position: fixed; top: calc(var(--bar) + 6px); right: 10px; z-index: 70; width: 264px;
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px; box-shadow: 0 12px 34px rgba(0,0,0,.28);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity .18s ease, transform .18s ease, visibility .18s;
+}
+#settings.open { opacity: 1; visibility: visible; transform: none; }
+.set-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.set-label { font-size: 12px; color: var(--fg-dim); }
+.seg, .stepper { display: flex; gap: 4px; align-items: center; }
+.seg button, .stepper button {
+  min-width: 34px; height: 28px; padding: 0 9px; font: inherit; font-size: 12px;
+  color: var(--fg-dim); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 7px; cursor: pointer;
+}
+.seg button:hover, .stepper button:hover { color: var(--fg-strong); border-color: var(--accent); }
+.seg button.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.stepper span { min-width: 34px; text-align: center; font-size: 12px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.reset {
+  width: 100%; height: 30px; margin-top: 4px; font: inherit; font-size: 12px;
+  color: var(--fg-dim); background: transparent; border: 1px solid var(--line);
+  border-radius: 7px; cursor: pointer;
+}
+.reset:hover { color: var(--fg-strong); border-color: var(--accent); }
+
+#scrim { position: fixed; inset: 0; z-index: 65; background: rgba(0,0,0,.34); }
+
+/* ---------- 正文 ---------- */
+#main { padding-top: var(--bar); }
+
+#article {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 40px 22px 8px;
+  font-size: var(--fs);
+  line-height: var(--lh);
+  letter-spacing: .01em;
+}
+
+#article h1 {
+  font-size: 1.32em; color: var(--fg-strong); font-weight: 600;
+  letter-spacing: .04em; margin-bottom: 1.8em; text-align: center;
+}
+#article h2 { font-size: 1.16em; color: var(--fg-strong); margin: 1.9em 0 .8em; font-weight: 600; }
+#article h3 { font-size: 1.05em; color: var(--fg-strong); margin: 1.6em 0 .7em; font-weight: 600; }
+
+/* 中文段落用段间距分隔，不用首行缩进——屏幕上更好扫 */
+#article p { margin-bottom: 1.05em; text-align: justify; word-break: break-word; }
+#article p:last-child { margin-bottom: 0; }
+
+#article hr { border: 0; border-top: 1px solid var(--line); width: 32%; margin: 2.4em auto; }
+#article blockquote {
+  margin: 0 0 1.05em; padding-left: 14px;
+  border-left: 2px solid var(--line); color: var(--fg-dim);
+}
+#article strong { color: var(--fg-strong); font-weight: 600; }
+#article em { font-style: italic; color: var(--fg-strong); }
+#article code {
+  font-family: ui-monospace, Consolas, monospace; font-size: .88em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: 4px;
+}
+
+/* 选中态跟主题走 */
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* ---------- 翻页 ---------- */
+#pager {
+  max-width: var(--measure); margin: 0 auto;
+  padding: 30px 22px 72px; display: flex; align-items: center; gap: 12px;
+}
+#pager button {
+  flex: 1; height: 42px; font: inherit; font-size: 14px;
+  color: var(--fg); background: var(--bg-soft);
+  border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+#pager button:hover:not(:disabled) { border-color: var(--accent); color: var(--fg-strong); }
+#pager button:disabled { opacity: .38; cursor: default; }
+#pagerInfo { font-size: 12px; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- 移动端 ---------- */
+@media (max-width: 620px) {
+  :root { --fs: 18px; --bar: 48px; }
+  #article { padding: 28px 18px 8px; }
+  #pager { padding: 24px 18px 64px; }
+  #settings { right: 8px; left: 8px; width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

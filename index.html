@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="night">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>应届大学生驯服野生AI修仙</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div id="progress"><i></i></div>
+
+<header id="topbar">
+  <button id="btnToc" class="icon" aria-label="目录" title="目录 (T)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+  </button>
+  <div id="heading">
+    <span id="bookTitle">应届大学生驯服野生AI修仙</span>
+    <span id="chapTitle"></span>
+  </div>
+  <button id="btnSet" class="icon" aria-label="阅读设置" title="阅读设置 (S)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h8M16 17h4"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="14" cy="17" r="2"/></svg>
+  </button>
+</header>
+
+<aside id="toc" aria-hidden="true">
+  <div class="toc-head">
+    <input id="tocSearch" type="search" placeholder="搜索章节" autocomplete="off" spellcheck="false">
+  </div>
+  <div id="tocStats"></div>
+  <ol id="tocList"></ol>
+</aside>
+
+<div id="settings" aria-hidden="true">
+  <div class="set-row">
+    <span class="set-label">主题</span>
+    <div class="seg" id="themeSeg">
+      <button data-theme="night">夜</button>
+      <button data-theme="paper">纸</button>
+      <button data-theme="day">日</button>
+    </div>
+  </div>
+  <div class="set-row">
+    <span class="set-label">字号</span>
+    <div class="stepper"><button data-act="fs-">A-</button><span id="fsVal"></span><button data-act="fs+">A+</button></div>
+  </div>
+  <div class="set-row">
+    <span class="set-label">行距</span>
+    <div class="stepper"><button data-act="lh-">紧</button><span id="lhVal"></span><button data-act="lh+">松</button></div>
+  </div>
+  <div class="set-row">
+    <span class="set-label">页宽</span>
+    <div class="stepper"><button data-act="w-">窄</button><span id="wVal"></span><button data-act="w+">宽</button></div>
+  </div>
+  <div class="set-row">
+    <span class="set-label">字体</span>
+    <div class="seg" id="fontSeg">
+      <button data-font="song">宋</button>
+      <button data-font="hei">黑</button>
+    </div>
+  </div>
+  <button id="btnReset" class="reset">恢复默认</button>
+</div>
+
+<div id="scrim" hidden></div>
+
+<main id="main">
+  <article id="article"></article>
+  <nav id="pager">
+    <button id="btnPrev">上一章</button>
+    <span id="pagerInfo"></span>
+    <button id="btnNext">下一章</button>
+  </nav>
+</main>
+
+<script src="data/book.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
