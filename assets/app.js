@@ -22,7 +22,11 @@
 
   // ---------- 偏好 ----------
   var KEY = 'askoracle.reader.v1';
-  var DEFAULTS = { theme: 'night', font: 'song', fs: 19, lh: 1.95, w: 34, idx: 0, scroll: 0, seen: [] };
+  var DEFAULTS = {
+    theme: 'night', font: 'song', fs: 19, lh: 1.95, w: 34,
+    idx: 0, scroll: 0, seen: [],
+    reverse: false, collapsed: []
+  };
   var prefs = load();
 
   function load() {
@@ -31,6 +35,7 @@
     var out = {};
     for (var k in DEFAULTS) out[k] = (p && p[k] !== undefined) ? p[k] : DEFAULTS[k];
     if (!Array.isArray(out.seen)) out.seen = [];
+    if (!Array.isArray(out.collapsed)) out.collapsed = [];
     return out;
   }
   var saveTimer = null;
@@ -62,37 +67,109 @@
 
   // ---------- 目录 ----------
   var items = BOOK.index;
-  var liByIdx = [];
+  var GROUP = 10;
+  var query = '';
 
-  function buildToc() {
-    var frag = document.createDocumentFragment();
-    items.forEach(function (it, i) {
-      var li = document.createElement('li');
-      li.innerHTML = '<span class="num">' + it.n + '</span><span class="name"></span>';
-      li.querySelector('.name').textContent = it.title;
-      li.title = it.title;
-      li.addEventListener('click', function () { open(i, true); closeToc(); });
-      frag.appendChild(li);
-      liByIdx.push(li);
-    });
-    el.tocList.appendChild(frag);
-    el.tocStats.textContent = '共 ' + BOOK.stats.chapters + ' 章 · ' +
-      (BOOK.stats.words / 10000).toFixed(1) + ' 万字';
+  function groupKey(n) { return Math.floor((n - 1) / GROUP) * GROUP + 1; }
+
+  function matches(it) {
+    if (!query) return true;
+    return it.title.indexOf(query) !== -1 || String(it.n).indexOf(query) === 0;
   }
 
-  function markToc() {
-    liByIdx.forEach(function (li, i) {
-      li.classList.toggle('active', i === prefs.idx);
-      li.classList.toggle('read', prefs.seen.indexOf(items[i].id) !== -1 && i !== prefs.idx);
+  function renderToc() {
+    el.tocList.innerHTML = '';
+    el.tocStats.textContent = BOOK.stats.chapters + ' 章 · ' +
+      (BOOK.stats.words / 10000).toFixed(1) + ' 万字';
+
+    var map = {}, order = [];
+    items.forEach(function (it, i) {
+      var k = groupKey(it.n);
+      if (!map[k]) { map[k] = []; order.push(k); }
+      map[k].push(i);
     });
+    order.sort(function (a, b) { return a - b; });
+    if (prefs.reverse) order.reverse();
+
+    var frag = document.createDocumentFragment();
+    order.forEach(function (k) {
+      var idxs = map[k].filter(function (i) { return matches(items[i]); });
+      if (!idxs.length) return;                 // 搜索时整节没命中就不显示
+      if (prefs.reverse) idxs = idxs.slice().reverse();
+
+      var hasActive = idxs.indexOf(prefs.idx) !== -1;
+      // 正在读的那一节永远展开；搜索时也一律展开，否则搜了看不见
+      var shut = prefs.collapsed.indexOf(k) !== -1 && !hasActive && !query;
+
+      var grp = document.createElement('div');
+      grp.className = 'grp' + (shut ? ' collapsed' : '');
+
+      var head = document.createElement('div');
+      head.className = 'grp-head' + (hasActive ? ' has-active' : '');
+      var caret = document.createElement('span');
+      caret.className = 'caret';
+      caret.textContent = '▾';
+      var label = document.createElement('span');
+      label.textContent = k + '-' + (k + GROUP - 1);
+      var cnt = document.createElement('span');
+      cnt.className = 'cnt';
+      cnt.textContent = idxs.length;
+      head.appendChild(caret); head.appendChild(label); head.appendChild(cnt);
+      head.addEventListener('click', function () {
+        var at = prefs.collapsed.indexOf(k);
+        if (at === -1) prefs.collapsed.push(k); else prefs.collapsed.splice(at, 1);
+        save(); renderToc();
+      });
+      grp.appendChild(head);
+
+      var ul = document.createElement('ul');
+      ul.className = 'grp-items';
+      idxs.forEach(function (i) {
+        var it = items[i];
+        var li = document.createElement('li');
+        li.innerHTML = '<span class="num"></span><span class="name"></span>';
+        li.querySelector('.num').textContent = it.n;
+        li.querySelector('.name').textContent = it.title;
+        li.title = it.title;
+        if (i === prefs.idx) li.className = 'active';
+        else if (prefs.seen.indexOf(it.id) !== -1) li.className = 'read';
+        li.addEventListener('click', function () { open(i, true); closeToc(); });
+        ul.appendChild(li);
+      });
+      grp.appendChild(ul);
+      frag.appendChild(grp);
+    });
+    el.tocList.appendChild(frag);
+  }
+
+  function scrollActiveIntoView() {
+    var a = el.tocList.querySelector('li.active');
+    if (a) a.scrollIntoView({ block: 'nearest' });
   }
 
   el.tocSearch.addEventListener('input', function () {
-    var q = this.value.trim();
-    liByIdx.forEach(function (li, i) {
-      var hit = !q || items[i].title.indexOf(q) !== -1 || String(items[i].n).indexOf(q) === 0;
-      li.hidden = !hit;
-    });
+    query = this.value.trim();
+    renderToc();
+  });
+
+  $('btnOrder').addEventListener('click', function () {
+    prefs.reverse = !prefs.reverse;
+    this.classList.toggle('on', prefs.reverse);
+    this.textContent = prefs.reverse ? '倒序' : '正序';
+    save(); renderToc(); scrollActiveIntoView();
+  });
+
+  $('btnFold').addEventListener('click', function () {
+    if (prefs.collapsed.length) prefs.collapsed = [];
+    else {
+      prefs.collapsed = [];
+      items.forEach(function (it) {
+        var k = groupKey(it.n);
+        if (prefs.collapsed.indexOf(k) === -1) prefs.collapsed.push(k);
+      });
+    }
+    this.textContent = prefs.collapsed.length ? '展开' : '折叠';
+    save(); renderToc(); scrollActiveIntoView();
   });
 
   // ---------- 章节 ----------
@@ -112,9 +189,8 @@
     el.prev.disabled = i === 0;
     el.next.disabled = i === items.length - 1;
 
-    markToc();
-    var active = liByIdx[i];
-    if (active) active.scrollIntoView({ block: 'nearest' });
+    renderToc();
+    scrollActiveIntoView();
 
     if (toTop !== false) {
       window.scrollTo(0, 0);
@@ -215,9 +291,38 @@
     });
   }, { passive: true });
 
+  // ---------- 更新检查 ----------
+  // 静态站没有文件监听，改用内容指纹：站点重新编译后指纹会变，
+  // 页面回到前台时轻量比一下，变了就提示，不自作主张刷新（正读着呢）。
+  var dismissed = '';
+
+  function checkUpdate() {
+    if (location.protocol === 'file:') return;      // 本地打开时 fetch 会被拦，直接跳过
+    if (!BOOK.version) return;                      // 老数据没有指纹，不检查
+    fetch('data/version.json?_=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (v) {
+        if (!v || !v.version) return;
+        if (v.version === BOOK.version || v.version === dismissed) return;
+        var more = v.chapters - BOOK.stats.chapters;
+        $('newbarText').textContent = more > 0 ? ('更新了 ' + more + ' 章') : '内容有更新';
+        $('newbar').hidden = false;
+        $('btnReload').onclick = function () { location.reload(); };
+        $('btnDismiss').onclick = function () { dismissed = v.version; $('newbar').hidden = true; };
+      })
+      .catch(function () { /* 断网或没部署 version.json，静默忽略 */ });
+  }
+
+  window.addEventListener('focus', checkUpdate);
+  setTimeout(checkUpdate, 3000);
+  setInterval(checkUpdate, 10 * 60 * 1000);
+
   // ---------- 启动 ----------
   applyPrefs();
-  buildToc();
+  $('btnOrder').classList.toggle('on', prefs.reverse);
+  $('btnOrder').textContent = prefs.reverse ? '倒序' : '正序';
+  $('btnFold').textContent = prefs.collapsed.length ? '展开' : '折叠';
+  renderToc();
   open(clamp(prefs.idx, 0, items.length - 1), false);
   // 恢复上次滚动位置：等一帧让排版稳定，否则位置会偏
   requestAnimationFrame(function () {

@@ -27,9 +27,13 @@
 <aside id="toc" aria-hidden="true">
   <div class="toc-head">
     <input id="tocSearch" type="search" placeholder="搜索章节" autocomplete="off" spellcheck="false">
+    <div class="toc-ctl">
+      <button id="btnOrder" title="切换正序/倒序">正序</button>
+      <button id="btnFold" title="全部折叠 / 全部展开">折叠</button>
+      <span id="tocStats"></span>
+    </div>
   </div>
-  <div id="tocStats"></div>
-  <ol id="tocList"></ol>
+  <div id="tocList"></div>
 </aside>
 
 <div id="settings" aria-hidden="true">
@@ -64,6 +68,12 @@
 </div>
 
 <div id="scrim" hidden></div>
+
+<div id="newbar" hidden>
+  <span id="newbarText"></span>
+  <button id="btnReload">刷新</button>
+  <button id="btnDismiss" class="ghost">稍后</button>
+</div>
 
 <main id="main">
   <article id="article"></article>
